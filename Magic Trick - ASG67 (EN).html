@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Magic Trick 2.0 - Emulation</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: radial-gradient(ellipse at center, #4a0a0a 0%, #1a0000 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      padding: 15px;
+    }
+
+    .main-title {
+      color: #ffcccc;
+      font-size: 28px;
+      margin-bottom: 4px;
+      text-align: center;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .author {
+      color: #aaccff;
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 12px;
+      opacity: 0.85;
+    }
+
+    .dialogue {
+      color: #ffdddd;
+      font-size: 15px;
+      text-align: center;
+      margin-bottom: 18px;
+      min-height: 24px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+
+    .container {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .grid-wrapper {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(7, 52px);
+      gap: 4px;
+      background: rgba(0,0,0,0.35);
+      padding: 10px;
+      border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    }
+
+    .card {
+      width: 52px;
+      height: 72px;
+      background: linear-gradient(145deg, #ffffff, #f0f0f0);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      border: 1px solid #ddd;
+      transition: transform 0.12s, box-shadow 0.12s, background 0.2s;
+      cursor: default;
+      user-select: none;
+      position: relative;
+      opacity: 0;
+      transform: scale(0.6);
+    }
+
+    .card.show {
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+    }
+
+    .card.clickable {
+      cursor: pointer;
+    }
+
+    .card.clickable:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 12px rgba(0,0,0,0.45);
+    }
+
+    .card.face-down {
+      background: linear-gradient(145deg, #1a3a6e, #0d2244);
+      color: #88aadd !important;
+      border-color: #2a4a7a;
+    }
+
+    .card.face-down .rank,
+    .card.face-down .suit {
+      display: none;
+    }
+
+    .card.face-down::after {
+      content: "🂠";
+      font-size: 28px;
+      color: #88aadd;
+    }
+
+    .card .rank { font-size: 20px; line-height: 1; }
+    .card .suit { font-size: 30px; line-height: 1; margin-top: 1px; }
+
+    .clubs    { color: #00b000; }   /* Verde más puro */
+    .hearts   { color: #e000c0; }   /* Magenta más violáceo */
+    .spades   { color: #0080ff; }   /* Azul más puro */
+    .diamonds { color: #ee0000; }   /* Rojo más puro */
+
+    .arrows-column {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding-top: 10px;
+    }
+
+    .row-arrow {
+      width: 36px;
+      height: 72px;
+      background: radial-gradient(circle at 30% 30%, #6bb8ff, #0077dd);
+      border-radius: 18px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+      cursor: pointer;
+      transition: transform 0.12s, background 0.12s, opacity 0.2s;
+      border: none;
+    }
+
+    .row-arrow:hover:not(:disabled) {
+      transform: scale(1.08);
+      background: radial-gradient(circle at 30% 30%, #8acfff, #0099ff);
+    }
+
+    .row-arrow:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .penguins {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      justify-content: flex-end;
+    }
+
+    .penguin-card {
+      width: 52px;
+      height: 72px;
+      background: linear-gradient(145deg, #1a3a6e, #0d2244);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      border: 1px solid #2a4a7a;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.12s;
+      position: relative;
+      color: #88aadd;
+      opacity: 0;
+      transform: scale(0.6);
+    }
+
+    .penguin-card.show {
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+    }
+
+    .penguin-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 5px 12px rgba(0,0,0,0.45);
+    }
+
+    .penguin-card.face-down::after {
+      content: "🂠";
+      font-size: 28px;
+      color: #88aadd;
+    }
+
+    .penguin-card .rank { font-size: 20px; line-height: 1; }
+    .penguin-card .suit { font-size: 30px; line-height: 1; margin-top: 1px; }
+
+    .penguin-card.revealed {
+      background: linear-gradient(145deg, #ffffff, #f0f0f0);
+      border-color: #ddd;
+      cursor: default;
+    }
+
+    .penguin-card.revealed::after {
+      display: none;
+    }
+
+    /* Asegurar colores de palo en las cartas sobrantes reveladas */
+    .penguin-card.revealed.clubs    { color: #00b000; }
+    .penguin-card.revealed.hearts   { color: #e000c0; }
+    .penguin-card.revealed.spades   { color: #0080ff; }
+    .penguin-card.revealed.diamonds { color: #ee0000; }
+
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      max-width: 240px;
+    }
+
+    .info {
+      color: #ffdddd;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.5;
+      background: rgba(0,0,0,0.45);
+      padding: 14px;
+      border-radius: 10px;
+      width: 100%;
+    }
+
+    h1 {
+      color: #ffcccc;
+      font-size: 18px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #aaddff;
+      min-height: 40px;
+      font-weight: 500;
+    }
+
+    .btn-restart {
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: #0077dd;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: none;
+    }
+
+    .btn-restart:hover { background: #0099ff; }
+  </style>
+</head>
+<body>
+  <h1 class="main-title">Magic Trick - ASG67</h1>
+  <div class="author">Santiago020267</div>
+  <div class="dialogue" id="instructions">
+    Think of a card and tell me which row it is in.
+  </div>
+
+  <div class="container">
+    <div class="grid-wrapper">
+      <div class="grid" id="cardGrid"></div>
+      <div class="arrows-column" id="arrowsColumn">
+        <button class="row-arrow" data-row="0">←</button>
+        <button class="row-arrow" data-row="1">←</button>
+        <button class="row-arrow" data-row="2">←</button>
+        <button class="row-arrow" data-row="3">←</button>
+        <button class="row-arrow" data-row="4">←</button>
+        <button class="row-arrow" data-row="5">←</button>
+        <button class="row-arrow" data-row="6">←</button>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="penguins" id="penguins"></div>
+
+      <div class="info">
+        <button class="btn-restart" id="btnRestart">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== DATOS ==========
+    const SUITS = [
+      { symbol: '♣', color: 'clubs' },
+      { symbol: '♥', color: 'hearts' },
+      { symbol: '♠', color: 'spades' },
+      { symbol: '♦', color: 'diamonds' }
+    ];
+    const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+    // Generar mazo completo (52 cartas)
+    function createDeck() {
+      const deck = [];
+      for (const s of SUITS) {
+        for (const r of RANKS) {
+          deck.push({ rank: r, suit: s.symbol, color: s.color });
+        }
+      }
+      return deck;
+    }
+
+    // Entero aleatorio sin sesgo en [0, n) usando crypto (cada partida distinta, sin patrones)
+    function randInt(n) {
+      if (window.crypto && crypto.getRandomValues) {
+        const buf = new Uint32Array(1);
+        const limit = Math.floor(0x100000000 / n) * n;
+        let x;
+        do { crypto.getRandomValues(buf); x = buf[0]; } while (x >= limit);
+        return x % n;
+      }
+      return Math.floor(Math.random() * n);
+    }
+
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = randInt(i + 1);
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    const cardKey = c => c.rank + c.suit;
+
+    // ========== ESTADO ==========
+    let phase = 0;               // 0: primera fila, 1: segunda fila, 2: revelación
+    let grid = [];               // 7x7 array de cartas
+    let leftover = [];           // 3 cartas fuera
+    let firstRow = null;         // fila elegida en fase 0
+    let chosenCard = null;       // la carta que el usuario eligió (se descubre en fase 1)
+    let revealedCount = 0;
+    let faceDownOrder = [];      // orden de las cartas que se revelarán
+    let pickedByRow = [];        // pickedByRow[r] = carta de la fila elegida que cayó en la fila r
+
+    // ========== RENDER ==========
+    function renderGrid(faceDown = false, animate = true) {
+      const gridEl = document.getElementById('cardGrid');
+      gridEl.innerHTML = '';
+
+      const cards = [];
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          const card = grid[r][c];
+          const div = document.createElement('div');
+          div.className = `card ${card.color}`;
+          if (faceDown) {
+            div.classList.add('face-down', 'clickable');
+            div.dataset.r = r;
+            div.dataset.c = c;
+          } else {
+            div.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${card.suit}</span>`;
+          }
+          gridEl.appendChild(div);
+          cards.push(div);
+        }
+      }
+
+      if (animate) {
+        // Aparecen de a una, rápido (≈25ms entre cada una → ~1.2s total)
+        cards.forEach((div, i) => {
+          setTimeout(() => div.classList.add('show'), i * 25);
+        });
+      } else {
+        cards.forEach(div => div.classList.add('show'));
+      }
+    }
+
+    function renderPenguins(animate = false) {
+      const el = document.getElementById('penguins');
+      el.innerHTML = '';
+      const cards = [];
+      leftover.forEach((card, i) => {
+        const div = document.createElement('div');
+        div.className = `penguin-card face-down ${card.color}`;
+        div.dataset.index = i;
+        el.appendChild(div);
+        cards.push(div);
+      });
+
+      if (animate) {
+        // Aparecen junto con las de la grilla (después de las 49)
+        cards.forEach((div, i) => {
+          setTimeout(() => div.classList.add('show'), (49 + i) * 25);
+        });
+      } else {
+        cards.forEach(div => div.classList.add('show'));
+      }
+    }
+
+    function getColor(colorClass) {
+      return { clubs:'#00b000', hearts:'#e000c0', spades:'#0080ff', diamonds:'#ee0000' }[colorClass];
+    }
+
+    function setStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+
+    function setInstructions(html) {
+      document.getElementById('instructions').innerHTML = html;
+    }
+
+    function disableArrows(disabled = true) {
+      document.querySelectorAll('.row-arrow').forEach(btn => btn.disabled = disabled);
+    }
+
+    // ========== LÓGICA DEL TRUCO ==========
+    function startGame() {
+      phase = 0;
+      firstRow = null;
+      chosenCard = null;
+      revealedCount = 0;
+
+      const deck = shuffle(createDeck());
+      // 49 cartas para la grilla + 3 leftover
+      leftover = deck.slice(49);
+      const cards49 = deck.slice(0, 49);
+
+      // Armar grilla 7x7
+      grid = [];
+      for (let r = 0; r < 7; r++) {
+        grid[r] = cards49.slice(r * 7, r * 7 + 7);
+      }
+
+      renderGrid(false, true);          // animar grilla
+      renderPenguins(true);             // animar las 3 sobrantes junto con las otras
+      disableArrows(false);
+      setInstructions('Think of a card and tell me which row it is in.');
+      document.getElementById('btnRestart').style.display = 'none';
+    }
+
+    // Fase 0 → usuario elige primera fila (NUEVO MOTOR)
+    function onFirstRow(row) {
+      firstRow = row;
+
+      // 1) Las 7 cartas de la fila elegida
+      const picked = shuffle(grid[row]);
+
+      // 2) Cada carta va a una fila DIFERENTE, al azar (permutación aleatoria de las 7 filas)
+      const targetRows = shuffle([0, 1, 2, 3, 4, 5, 6]);
+
+      // 3) Las otras 42 cartas de la matriz, mezcladas al azar
+      const pickedKeys = new Set(picked.map(cardKey));
+      const rest = shuffle(grid.flat().filter(c => !pickedKeys.has(cardKey(c))));
+
+      const newGrid = Array.from({ length: 7 }, () => Array(7).fill(null));
+      pickedByRow = Array(7).fill(null);
+
+      // 4) Cada carta elegida cae en una columna cualquiera de su nueva fila
+      //    (columnas independientes: puede haber varias en la misma columna)
+      picked.forEach((card, i) => {
+        const r = targetRows[i];
+        const c = randInt(7);
+        newGrid[r][c] = card;
+        pickedByRow[r] = card;
+      });
+
+      // 5) El resto de la matriz se completa al azar con las cartas restantes
+      let idx = 0;
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          if (newGrid[r][c] === null) newGrid[r][c] = rest[idx++];
+        }
+      }
+
+      grid = newGrid;
+      phase = 1;
+      renderGrid(false);
+      setInstructions('Tell me again which row your card is in now.');
+    }
+
+    // Fase 1 → usuario elige segunda fila → ya sabemos la carta
+    function onSecondRow(row) {
+      // En cada fila cayó exactamente una de las 7 cartas elegidas: pickedByRow[row]
+      chosenCard = pickedByRow[row];
+
+      phase = 2;
+      disableArrows(true);
+
+      // Preparar grilla face-down con las 49 cartas (en orden aleatorio o el actual)
+      // Usamos las cartas actuales de la grilla
+      faceDownOrder = [];
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          faceDownOrder.push(grid[r][c]);
+        }
+      }
+      // Mezclamos el orden de revelación (excepto la primera que será la elegida)
+      faceDownOrder = shuffle(faceDownOrder);
+      // Nos aseguramos que la primera revelada sea la chosenCard
+      const idx = faceDownOrder.findIndex(c => c.rank === chosenCard.rank && c.suit === chosenCard.suit);
+      if (idx > 0) {
+        [faceDownOrder[0], faceDownOrder[idx]] = [faceDownOrder[idx], faceDownOrder[0]];
+      }
+
+      renderGrid(true); // face down
+      setInstructions('Pick any card and click on it. Magic! 😉');
+      document.getElementById('btnRestart').style.display = 'inline-block';
+    }
+
+    // Fase 2 → revelación
+    function onCardClick(r, c) {
+      if (phase !== 2) return;
+      const cardEl = document.querySelector(`.card[data-r="${r}"][data-c="${c}"]`);
+      if (!cardEl || !cardEl.classList.contains('face-down')) return;
+
+      const cardToShow = faceDownOrder[revealedCount];
+      revealedCount++;
+
+      cardEl.classList.remove('face-down', 'clubs', 'hearts', 'spades', 'diamonds', 'clickable');
+      cardEl.classList.add(cardToShow.color);
+      cardEl.innerHTML = `<span class="rank">${cardToShow.rank}</span><span class="suit">${cardToShow.suit}</span>`;
+
+      // Solo los tres diálogos, nada más
+    }
+
+    // ========== EVENTOS ==========
+    document.querySelectorAll('.row-arrow').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        const row = parseInt(btn.dataset.row);
+        if (phase === 0) {
+          onFirstRow(row);
+        } else if (phase === 1) {
+          onSecondRow(row);
+        }
+      });
+    });
+
+    document.getElementById('cardGrid').addEventListener('click', (e) => {
+      const card = e.target.closest('.card');
+      if (!card || !card.classList.contains('face-down')) return;
+      const r = parseInt(card.dataset.r);
+      const c = parseInt(card.dataset.c);
+      onCardClick(r, c);
+    });
+
+    // Click en las cartas sobrantes (pingüinos)
+    document.getElementById('penguins').addEventListener('click', (e) => {
+      const cardEl = e.target.closest('.penguin-card');
+      if (!cardEl || !cardEl.classList.contains('face-down')) return;
+
+      const idx = parseInt(cardEl.dataset.index);
+      const card = leftover[idx];
+
+      cardEl.classList.remove('face-down');
+      cardEl.classList.add('revealed');
+      cardEl.innerHTML = `<span class="rank">${card.rank}</span><span class="suit">${card.suit}</span>`;
+    });
+
+    document.getElementById('btnRestart').addEventListener('click', startGame);
+
+    // Iniciar
+    startGame();
+  </script>
+</body>
+</html>
